@@ -1,0 +1,11 @@
+rules:
+  - name: task
+    pattern: "Task: (.*)"
+    type: string
+    required: true
+
+  - name: priority
+    pattern: "Priority: (low|medium|high)"
+    type: enum
+    required: false
+    default: "medium"
