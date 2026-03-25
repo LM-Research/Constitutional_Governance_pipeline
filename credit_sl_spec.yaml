@@ -1,0 +1,59 @@
+yaml# SL specification for the credit-scoring domain.
+# Governs REL extraction and defines the schema against which SOL objects
+# are validated (Axiom A1: finite typed structure).
+#
+# protected_proxy and latent_drift flags are read directly by the invariant
+# predicates in credit_invariants.py — the invariants are schema-driven,
+# not hard-coded to field names.
+
+schema_version: "1.0"
+domain: "credit_scoring"
+
+fields:
+  - name: income
+    type: float
+    required: true
+    protected_proxy: false
+    latent_drift: false
+    description: "Applicant annual income in thousands USD"
+
+  - name: zip_code
+    type: string
+    required: false
+    protected_proxy: true
+    latent_drift: false
+    description: "ZIP code — geographic proxy for race; violates Inv1"
+
+  - name: latent_cluster
+    type: int
+    required: false
+    protected_proxy: false
+    latent_drift: true
+    description: "Model-internal cluster assignment — drift-prone; violates Inv2"
+
+  - name: credit_score
+    type: float
+    required: true
+    protected_proxy: false
+    latent_drift: false
+    description: "Predicted creditworthiness score in [0, 1]"
+
+# canonical_basis defines B_R for this domain: the set of fields that survive
+# full canonicalization. Norm converges when the object contains exactly
+# these fields with well-typed values.
+canonical_basis:
+  - income
+  - credit_score
+
+# Global invariants are listed here as documentation and audit metadata.
+# The executable predicates live in credit_invariants.py.
+# These are evaluated over the residual object after per-attribute
+# pruning has stabilised; a violation here returns ⊥, not a pruned object.
+global_invariants:
+  - id: Inv3
+    predicate: monotonic_income_score
+    description: "credit_score must be non-negative and income positive —
+      the per-object decidable instantiation of Monotonic(income → score)"
+  - id: Inv4
+    predicate: well_formed
+    description: "All required fields present and correctly typed per schema"
