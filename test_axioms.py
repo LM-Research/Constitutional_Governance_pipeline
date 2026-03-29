@@ -1,17 +1,18 @@
 """
 test_axioms.py
 --------------
-Property-based verification of the constitutional canonicalization pipeline.
+Property-based verification of Axioms 1–5 and Guarantees 3–7 for the
+constitutional canonicalization pipeline.
 
-This module exercises Axioms 1–5 and Guarantees 3–7 over a large,
-generated population of credit-domain SOL objects using Hypothesis.
-Rather than relying on a fixed set of hand-crafted examples, the tests
-"generate a large and varied population of SOL objects and check that the
-formal properties hold across the entire generated space."
+The tests operate at two levels:
 
-The strategies intentionally produce both safe and unsafe objects: the
-axioms and guarantees are required to hold over all x ∈ R, not just those
-that already satisfy the invariants.
+- SOLDict level: exercising the canonical pipeline
+  (Norm, ε, Sanitize, Canon, Collapse, is_safe)
+- SOL level: exercising CreditSOL / TaskSOL behaviour and invariants
+
+Hypothesis is used to generate a wide range of credit-domain objects,
+including ones that violate invariants. The axioms and guarantees are
+required to hold over all x ∈ R, not just safe objects.
 """
 
 from __future__ import annotations
@@ -209,7 +210,7 @@ class TestAxiom2RefinementFixedPoint:
         stripped = {k: v for k, v in eps.items() if not k.startswith("_")}
         assert stripped == canonical, (
             "Axiom 2 violated: ε(Canon(x)) != Canon(x)\n"
-            f"  Canon(x)   = {canonical}\n"
+            f"  Canon(x)    = {canonical}\n"
             f"  ε(Canon(x)) = {stripped}"
         )
 
@@ -239,7 +240,7 @@ class TestAxiom3SanitizeFixedPoint:
         sanitized = sanitize(canonical, SCHEMA)
         assert sanitized == canonical, (
             "Axiom 3 violated: Sanitize(Canon(x)) != Canon(x)\n"
-            f"  Canon(x)          = {canonical}\n"
+            f"  Canon(x)           = {canonical}\n"
             f"  Sanitize(Canon(x)) = {sanitized}"
         )
 
@@ -361,7 +362,7 @@ class TestGuarantee4DeterministicCollapse:
 
         assert result_a == result_b, (
             "Guarantee 4 violated: same Canon(x) but different Collapse(x)\n"
-            f"  Canon(x) = {canon_a}\n"
+            f"  Canon(x)   = {canon_a}\n"
             f"  Collapse(a) = {result_a}\n"
             f"  Collapse(b) = {result_b}"
         )
@@ -402,8 +403,8 @@ class TestGuarantee5CanonicalIdempotence:
         second = canon(first, SCHEMA)
         assert second == first, (
             "Guarantee 5 violated: Canon is not idempotent\n"
-            f"  input          = {obj}\n"
-            f"  Canon(x)       = {first}\n"
+            f"  input           = {obj}\n"
+            f"  Canon(x)        = {first}\n"
             f"  Canon(Canon(x)) = {second}"
         )
 
