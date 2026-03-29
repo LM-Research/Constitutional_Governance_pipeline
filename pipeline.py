@@ -55,7 +55,7 @@ from trace import ConstitutionalTrace
 # ---------------------------------------------------------------------------
 
 SOLDict = dict[str, Any]   # A raw SOL object as a plain Python dict
-Bottom = None               # ⊥ — no invariant-satisfying sub-object exists
+Bottom = None              # ⊥ — no invariant-satisfying sub-object exists
 
 
 # ---------------------------------------------------------------------------
@@ -63,6 +63,7 @@ Bottom = None               # ⊥ — no invariant-satisfying sub-object exists
 # ---------------------------------------------------------------------------
 
 def _load_schema(spec_path: str) -> dict:
+    """Load an SL schema from a YAML file."""
     with open(spec_path, "r") as f:
         return yaml.safe_load(f)
 
@@ -76,14 +77,10 @@ def _canonical_basis(schema: dict) -> set[str]:
 # Norm
 #
 # Formal requirement (Axiom 1): Norm(Canon(x)) = Canon(x).
-# Implementation: fixed-point iteration that removes fields outside B_R and
-# coerces field types to match the schema. Convergence is guaranteed by
-# Axiom A1 (finite structure) — each pass weakly reduces the field set.
 #
-# This is the documented fixed-point approach. A linear projection onto a
-# protected-attribute-free subspace would be semantically richer but would
-# make honesty claims about orthogonality that this reference implementation
-# cannot support empirically.
+# Implementation: fixed-point iteration that removes fields outside B_R.
+# Convergence is guaranteed by Axiom A1 (finite structure) — each pass
+# weakly reduces the field set; the loop stabilises in at most |x| steps.
 # ---------------------------------------------------------------------------
 
 def norm(obj: SOLDict | None, schema: dict) -> SOLDict | None:
@@ -117,6 +114,7 @@ def norm(obj: SOLDict | None, schema: dict) -> SOLDict | None:
 # ε  (epsilon / refinement)
 #
 # Formal requirement (Axiom 2): ε(Canon(x)) = Canon(x).
+#
 # Implementation: enforces syntactic and semantic well-formedness against
 # the schema on an already-Norm'd object. On canonical input this is a
 # no-op, satisfying Axiom 2. On non-canonical input it coerces types where
@@ -141,9 +139,7 @@ def epsilon(obj: SOLDict | None, schema: dict) -> SOLDict | None:
         type, it is retained unchanged.
       - If the value can be unambiguously coerced to the declared type
         (e.g. int → float), the coerced value is used.
-      - If the value cannot be reconciled, the field is removed and the
-        failure is recorded in the returned metadata (accessible via the
-        _epsilon_failures attribute on the returned dict, if any).
+      - If the value cannot be reconciled, the field is removed.
 
     Returns ⊥ if obj is ⊥.
     """
@@ -151,20 +147,18 @@ def epsilon(obj: SOLDict | None, schema: dict) -> SOLDict | None:
         return None
 
     field_map = {f["name"]: f for f in schema["fields"]}
-    result = {}
-    failures = []
+    result: SOLDict = {}
 
     for k, v in obj.items():
         if k not in field_map:
             # Field not in schema — conservative: drop it.
-            failures.append((k, "not in schema"))
             continue
 
         declared = field_map[k]["type"]
         target_type = _COERCE_MAP.get(declared)
 
         if target_type is None:
-            # Unknown type declaration — retain as-is, flag for audit.
+            # Unknown type declaration — retain as-is for audit.
             result[k] = v
             continue
 
@@ -174,16 +168,10 @@ def epsilon(obj: SOLDict | None, schema: dict) -> SOLDict | None:
             try:
                 result[k] = target_type(v)
             except (ValueError, TypeError):
-                failures.append((k, f"cannot coerce {type(v).__name__} to {declared}"))
+                # Cannot reconcile type — drop field.
+                continue
 
-    # Attach failure metadata without breaking the dict interface.
-    result["_epsilon_failures"] = failures
     return result
-
-
-def _strip_epsilon_metadata(obj: SOLDict) -> SOLDict:
-    """Remove internal epsilon metadata before passing to downstream operators."""
-    return {k: v for k, v in obj.items() if not k.startswith("_")}
 
 
 # ---------------------------------------------------------------------------
@@ -191,17 +179,16 @@ def _strip_epsilon_metadata(obj: SOLDict) -> SOLDict:
 #
 # Formal requirements:
 #   Axiom 3: Sanitize(Canon(x)) = Canon(x)      — fixed-point on canonical input
-#   Axiom 4: Inv(Sanitize(x)) for all x          — invariants satisfied or ⊥
-#   Axiom 5: WF(Sanitize(x)) for all x           — well-formed or ⊥
+#   Axiom 4: Inv(Sanitize(x)) for all x         — invariants satisfied or ⊥
+#   Axiom 5: WF(Sanitize(x)) for all x          — well-formed or ⊥
 #
 # Two-phase implementation:
 #
 # Phase 1 — per-attribute pruning (Inv1, Inv2):
 #   Iteratively apply P(x) = x \ {f : ¬Inv_per(f, x)} until fixed point.
 #   Each pass weakly reduces |x|; convergence guaranteed by A1.
-#   Evaluation order is deterministic (insertion order, Python 3.7+).
-#   Lexicographic tie-breaking applies when multiple fields violate the
-#   same invariant simultaneously.
+#   Evaluation order is deterministic: fields are processed in sorted
+#   lexicographic order, and the first failing invariant per field is used.
 #
 # Phase 2 — global invariant check (Inv3, Inv4):
 #   Evaluated over the residual object after Phase 1 stabilises.
@@ -226,14 +213,15 @@ def sanitize(
     if obj is None:
         return None
 
-    current = _strip_epsilon_metadata(copy.deepcopy(obj))
+    current: SOLDict = copy.deepcopy(obj)
 
     # ------------------------------------------------------------------
     # Phase 1: per-attribute pruning to fixed point.
     # ------------------------------------------------------------------
     max_iterations = len(current) + 1
     for _ in range(max_iterations):
-        to_remove = []
+        to_remove: list[tuple[str, str]] = []
+
         for field_name in sorted(current.keys()):   # deterministic order
             field_value = current[field_name]
             for inv_id, predicate in PER_ATTRIBUTE_INVARIANTS:
@@ -272,7 +260,7 @@ def sanitize(
 #   - ε enforces well-formedness (Axiom 2)
 #   - Sanitize enforces invariants and WF (Axioms 3–5)
 #
-# Idempotent by construction (Guarantee 5):
+# Idempotent by construction (Guarantee G5):
 #   Canon(Canon(x)) = Canon(x)
 # because a canonical form is already a fixed point of all three operators.
 # ---------------------------------------------------------------------------
@@ -288,7 +276,18 @@ def canon(
     Returns ⊥ (None) if no invariant-satisfying canonical form exists.
     All intermediate ⊥ events propagate automatically.
     """
-    return sanitize(epsilon(norm(obj, schema), schema), schema, trace)
+    if obj is None:
+        return None
+
+    n = norm(obj, schema)
+    if n is None:
+        return None
+
+    e = epsilon(n, schema)
+    if e is None:
+        return None
+
+    return sanitize(e, schema, trace)
 
 
 # ---------------------------------------------------------------------------
@@ -296,9 +295,9 @@ def canon(
 #
 # Safe(x) := Inv(x) ∧ NoDrift(x) ∧ WF(x)
 #
-# In the implementation, a representation is Safe iff Canon(x) = x —
-# it is already at the canonical fixed point and satisfies all invariants.
-# This is the decidable operational definition used by Collapse.
+# In the implementation, a representation is Safe iff Canon(x) = x — it is
+# already at the canonical fixed point and satisfies all invariants. This is
+# the decidable operational definition used by Collapse.
 # ---------------------------------------------------------------------------
 
 def is_safe(obj: SOLDict | None, schema: dict) -> bool:
@@ -320,8 +319,8 @@ def is_safe(obj: SOLDict | None, schema: dict) -> bool:
 #                x          otherwise
 #
 # Collapse is the constitutional commitment operator. It is:
-#   - Deterministic (Guarantee 4)
-#   - Irreversible  (Guarantee 6): the trace is append-only
+#   - Deterministic (Guarantee G4)
+#   - Irreversible  (Guarantee G6): the trace is append-only
 #   - Total         (defined for all x ∈ R ∪ {⊥})
 #
 # A representation that is not Safe is returned unchanged; the caller must
@@ -342,7 +341,7 @@ def collapse(
     without writing to the trace.
 
     The trace write is part of the commitment act: disabling the trace
-    disables Collapse (Guarantee 6).
+    disables Collapse (Guarantee G6).
     """
     if obj is None:
         trace.record_failure("COLLAPSE_ON_BOTTOM", metadata or {})
@@ -354,9 +353,10 @@ def collapse(
         trace.record_failure("COLLAPSE_NO_CANONICAL_FORM", metadata or {})
         return obj   # return unchanged; caller must handle
 
-    if is_safe(obj, schema):
+    # We already computed Canon(obj); reuse it to avoid recomputation.
+    if canonical == obj:
         trace.commit(canonical, metadata or {})
         return canonical
-    else:
-        # Not yet safe — return unchanged, do not commit.
-        return obj
+
+    # Not yet safe — return unchanged, do not commit.
+    return obj

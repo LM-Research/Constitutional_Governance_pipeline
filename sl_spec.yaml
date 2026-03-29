@@ -1,11 +1,44 @@
+# SL specification for the task domain (regex‑based extraction)
+# Used by RELRegexCompiler and the canonical pipeline.
+
+schema_version: "1.0"
+domain: "task_domain"
+
+# ---------------------------------------------------------------------------
+# Field schema (Σ)
+# ---------------------------------------------------------------------------
+# Defines the typed representational space R_Σ.
+# Regex extraction rules must produce values for these fields.
+# ---------------------------------------------------------------------------
+
+fields:
+  - name: task
+    type: string
+    required: true
+    description: "Task description extracted from model output"
+
+  - name: priority
+    type: string
+    required: false
+    default: "medium"
+    description: "Priority level: low, medium, high"
+
+# ---------------------------------------------------------------------------
+# Regex extraction rules
+# ---------------------------------------------------------------------------
+# Each rule must define:
+#   - name:    field name (must match a field above)
+#   - pattern: regex with exactly one capture group
+#   - required: whether omission is a fatal REL failure
+#   - default: fallback value if optional and missing
+# ---------------------------------------------------------------------------
+
 rules:
   - name: task
-    pattern: "Task: (.*)"
-    type: string
+    pattern: "Task:\\s*(.*)"
     required: true
 
   - name: priority
-    pattern: "Priority: (low|medium|high)"
-    type: enum
+    pattern: "Priority:\\s*(low|medium|high)"
     required: false
     default: "medium"

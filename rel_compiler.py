@@ -12,25 +12,25 @@ REL returns ⊥ on extraction failure.
 
 The four stages
 ---------------
-1. Lex      Segment the raw model output into a flat sequence of
-            (key, raw_value) tokens. No type interpretation occurs here;
-            the lexer operates on surface form only.
+1. Lex       Segment the raw model output into a flat sequence of
+             (key, raw_value) tokens. No type interpretation occurs here;
+             the lexer operates on surface form only.
 
-2. Parse    Construct a candidate attribute–value dict from the token
-            sequence. Handles duplicate keys (last-value-wins, logged),
-            unknown keys (retained for downstream filtering, logged), and
-            missing required keys (raises RELFailure of type 'omission').
+2. Parse     Construct a candidate attribute–value dict from the token
+             sequence. Handles duplicate keys (last-value-wins, logged),
+             unknown keys (retained for downstream filtering, logged), and
+             missing required keys (raises RELFailure of type 'omission').
 
 3. TypeCheck Enforce schema-level type constraints against Σ. Validates
-            that each extracted value is coercible to its declared type.
-            Values that fail coercion are either replaced with a schema
-            default (if one exists) or flagged as 'misclassification'.
+             that each extracted value is coercible to its declared type.
+             Values that fail coercion are either replaced with a schema
+             default (if one exists) or flagged as 'misclassification'.
 
-4. Lower    Deterministically project the type-checked dict into the SOL
-            canonical attribute vocabulary defined by the SL spec. Renames
-            aliased fields, drops fields not in the schema vocabulary, and
-            attaches provenance metadata (REL version, SL spec version,
-            model version, extraction timestamp).
+4. Lower     Deterministically project the type-checked dict into the SOL
+             canonical attribute vocabulary defined by the SL spec. Renames
+             aliased fields, drops fields not in the schema vocabulary, and
+             attaches provenance metadata (REL version, SL spec version,
+             model version, extraction timestamp).
 
 Each stage is a pure function with a defined input and output type.
 Stages are independently testable and independently auditable.
@@ -67,7 +67,8 @@ from __future__ import annotations
 import json
 import re
 import time
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Literal, TypedDict
 
 import yaml
 
@@ -91,6 +92,25 @@ class FailureType:
     ADVERSARIAL_FORMATTING  = "adversarial_formatting"
 
 
+FailureTypeLiteral = Literal[
+    "omission",
+    "misclassification",
+    "ambiguity_collapse",
+    "schema_drift",
+    "adversarial_formatting",
+]
+
+
+# ---------------------------------------------------------------------------
+# Warning structure — non-fatal observations collected during extraction
+# ---------------------------------------------------------------------------
+
+class RELWarning(TypedDict, total=False):
+    failure_type: FailureTypeLiteral | None
+    field: str
+    detail: str
+
+
 # ---------------------------------------------------------------------------
 # RELFailure — the exception type for all extraction failures.
 # Callers catch this and route to trace.record_rel_failure().
@@ -110,7 +130,7 @@ class RELFailure(Exception):
 
     def __init__(
         self,
-        failure_type: str,
+        failure_type: FailureTypeLiteral,
         field: str,
         raw_output: str,
         detail: str,
@@ -125,15 +145,11 @@ class RELFailure(Exception):
 # ---------------------------------------------------------------------------
 # Stage 1: Lex
 #
-# Segment raw model output into a flat list of (key, raw_value_str) pairs.
+# Segment raw model output into a flat list of (key, raw_value) pairs.
 # Two input formats are supported: structured text (Key: Value) and JSON.
-# The lexer does not interpret types; raw_value is always a string at this
-# stage (or a JSON-decoded Python primitive for the JSON path).
+# The lexer does not interpret types; raw_value is a string or primitive.
 #
-# Adversarial formatting detection: inputs whose surface structure appears
-# designed to confuse the parser (e.g. deeply nested keys, control
-# characters, excessively long values) are flagged rather than silently
-# processed. This is heuristic and conservative.
+# Adversarial formatting detection is heuristic and conservative.
 # ---------------------------------------------------------------------------
 
 _TEXT_PATTERN = re.compile(
@@ -152,7 +168,8 @@ def _lex_text(raw: str) -> list[tuple[str, str]]:
     Raises RELFailure(adversarial_formatting) if structural anomalies
     are detected.
     """
-    tokens = []
+    tokens: list[tuple[str, str]] = []
+
     for match in _TEXT_PATTERN.finditer(raw):
         key = match.group("key").strip()
         value = match.group("value").strip()
@@ -162,8 +179,10 @@ def _lex_text(raw: str) -> list[tuple[str, str]]:
                 FailureType.ADVERSARIAL_FORMATTING,
                 field=key,
                 raw_output=raw,
-                detail=f"Value for '{key}' exceeds maximum length "
-                       f"({len(value)} > {_MAX_VALUE_LENGTH})",
+                detail=(
+                    f"Value for '{key}' exceeds maximum length "
+                    f"({len(value)} > {_MAX_VALUE_LENGTH})"
+                ),
             )
 
         tokens.append((key, value))
@@ -230,16 +249,14 @@ def lex(raw: str, input_format: str = "text") -> list[tuple[str, Any]]:
 #   - Unknown keys: retained for schema_drift detection in TypeCheck.
 #   - Missing required keys: raises RELFailure(omission).
 #
-# 'warnings' is a mutable list passed in by the caller; the parser appends
-# non-fatal observations to it rather than raising, so that all warnings
-# from a single extraction are collected and available for the trace record.
+# Non-fatal observations are appended to a warnings list.
 # ---------------------------------------------------------------------------
 
 def parse(
     tokens: list[tuple[str, Any]],
     schema: dict,
     raw: str,
-    warnings: list[dict],
+    warnings: list[RELWarning],
 ) -> dict[str, Any]:
     """
     Stage 2: construct a candidate attribute-value dict from tokens.
@@ -256,11 +273,11 @@ def parse(
         normalised = key.lower().replace(" ", "_")
 
         if normalised in result:
-            warnings.append({
-                "failure_type": FailureType.AMBIGUITY_COLLAPSE,
-                "field": normalised,
-                "detail": f"Duplicate key '{key}'; using last value.",
-            })
+            warnings.append(RELWarning(
+                failure_type=FailureType.AMBIGUITY_COLLAPSE,
+                field=normalised,
+                detail=f"Duplicate key '{key}'; using last value.",
+            ))
 
         result[normalised] = value
 
@@ -274,6 +291,10 @@ def parse(
                 raw_output=raw,
                 detail=f"Required field '{name}' not found in model output",
             )
+
+    # Unknown keys are retained for schema_drift detection in TypeCheck.
+    # field_map is currently unused but kept for symmetry and future use.
+    _ = field_map
 
     return result
 
@@ -304,7 +325,7 @@ def typecheck(
     candidate: dict[str, Any],
     schema: dict,
     raw: str,
-    warnings: list[dict],
+    warnings: list[RELWarning],
 ) -> dict[str, Any]:
     """
     Stage 3: enforce schema-level type constraints.
@@ -317,12 +338,14 @@ def typecheck(
 
     for key, value in candidate.items():
         if key not in field_map:
-            warnings.append({
-                "failure_type": FailureType.SCHEMA_DRIFT,
-                "field": key,
-                "detail": f"Field '{key}' not in SL schema; "
-                          f"retained for lower stage",
-            })
+            warnings.append(RELWarning(
+                failure_type=FailureType.SCHEMA_DRIFT,
+                field=key,
+                detail=(
+                    f"Field '{key}' not in SL schema; "
+                    f"retained for lower stage"
+                ),
+            ))
             result[key] = value
             continue
 
@@ -337,29 +360,35 @@ def typecheck(
         # Attempt coercion.
         try:
             result[key] = target(value)
-            warnings.append({
-                "failure_type": None,   # not a failure, just a coercion
-                "field": key,
-                "detail": f"Coerced '{key}' from {type(value).__name__} "
-                          f"to {declared_type}",
-            })
+            warnings.append(RELWarning(
+                failure_type=None,   # not a failure, just a coercion
+                field=key,
+                detail=(
+                    f"Coerced '{key}' from {type(value).__name__} "
+                    f"to {declared_type}"
+                ),
+            ))
         except (ValueError, TypeError):
             default = field_spec.get("default")
             if default is not None:
                 result[key] = default
-                warnings.append({
-                    "failure_type": FailureType.MISCLASSIFICATION,
-                    "field": key,
-                    "detail": f"Cannot coerce '{key}' to {declared_type}; "
-                              f"using schema default {default!r}",
-                })
+                warnings.append(RELWarning(
+                    failure_type=FailureType.MISCLASSIFICATION,
+                    field=key,
+                    detail=(
+                        f"Cannot coerce '{key}' to {declared_type}; "
+                        f"using schema default {default!r}"
+                    ),
+                ))
             else:
                 raise RELFailure(
                     FailureType.MISCLASSIFICATION,
                     field=key,
                     raw_output=raw,
-                    detail=f"Cannot coerce '{key}' value {value!r} "
-                           f"to {declared_type}; no default available",
+                    detail=(
+                        f"Cannot coerce '{key}' value {value!r} "
+                        f"to {declared_type}; no default available"
+                    ),
                 )
 
     return result
@@ -375,9 +404,8 @@ def typecheck(
 #   - Applies any field aliases defined in the SL spec.
 #   - Attaches provenance metadata to the returned object.
 #
-# The provenance dict is attached under the key "_provenance" and is
-# stripped by downstream pipeline operators before invariant checking.
-# It is retained in the trace via the commit() metadata path.
+# Provenance is attached under "_provenance" and is stripped by downstream
+# pipeline operators before invariant checking.
 # ---------------------------------------------------------------------------
 
 def lower(
@@ -404,12 +432,10 @@ def lower(
     for key, value in type_checked.items():
         canonical_key = aliases.get(key, key)
         if canonical_key in field_names or key in field_names:
-            # Use the canonical (possibly aliased) key.
             out_key = aliases.get(key, key)
             result[out_key] = value
         # Fields not in vocabulary are dropped; already logged in TypeCheck.
 
-    # Attach provenance metadata.
     result["_provenance"] = {
         "rel_version": REL_VERSION,
         "sl_spec_version": sl_spec_version or schema.get("schema_version", "unknown"),
@@ -419,6 +445,16 @@ def lower(
     }
 
     return result
+
+
+def strip_provenance(sol_dict: dict[str, Any]) -> dict[str, Any]:
+    """
+    Remove provenance metadata from a lowered SOL dict.
+
+    Used by downstream operators that operate purely on the representational
+    content and do not need provenance fields.
+    """
+    return {k: v for k, v in sol_dict.items() if k != "_provenance"}
 
 
 # ---------------------------------------------------------------------------
@@ -431,6 +467,7 @@ def lower(
 # four-stage architecture.
 # ---------------------------------------------------------------------------
 
+@dataclass
 class RELCompiler:
     """
     Four-stage deterministic compiler implementing REL : Y → R_Σ ∪ {⊥}.
@@ -445,15 +482,14 @@ class RELCompiler:
             sol_dict = None   # ⊥
     """
 
-    def __init__(self, schema: dict, model_version: str = "unknown") -> None:
-        self.schema = schema
-        self.model_version = model_version
+    schema: dict
+    model_version: str = "unknown"
 
     @classmethod
     def from_spec(cls, spec_path: str, model_version: str = "unknown") -> RELCompiler:
         with open(spec_path, "r") as f:
             schema = yaml.safe_load(f)
-        return cls(schema, model_version)
+        return cls(schema=schema, model_version=model_version)
 
     def compile(
         self,
@@ -464,7 +500,7 @@ class RELCompiler:
         Run all four stages and return the lowered SOL dict.
 
         Raises RELFailure on any fatal extraction error. Non-fatal
-        warnings are available via compile_with_warnings() below.
+        warnings are available via compile_with_warnings().
         """
         result, _ = self.compile_with_warnings(raw, input_format)
         return result
@@ -473,7 +509,7 @@ class RELCompiler:
         self,
         raw: str,
         input_format: str = "text",
-    ) -> tuple[dict[str, Any], list[dict]]:
+    ) -> tuple[dict[str, Any], list[RELWarning]]:
         """
         Run all four stages and return (sol_dict, warnings).
 
@@ -484,7 +520,7 @@ class RELCompiler:
 
         Raises RELFailure on any fatal extraction error.
         """
-        warnings: list[dict] = []
+        warnings: list[RELWarning] = []
 
         # Stage 1: Lex
         tokens = lex(raw, input_format)

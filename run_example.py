@@ -3,20 +3,18 @@ run_example.py
 --------------
 End-to-end demonstration of the constitutional governance pipeline.
 
-Runs two examples through the full governed chain:
+Runs three scenarios through the full governed chain:
 
     SL → REL → SOL → Norm → ε → Sanitize → Canon → Collapse → Trace
 
 Example 1: Task domain (original minimal example, retained for continuity)
-Example 2: Credit-scoring domain (Table 1 from the paper)
-    2a. A clean object — income and credit_score only.
-    2b. A full object with proxy (zip_code) and drift (latent_cluster)
-        fields present — demonstrates Sanitize pruning both phases.
-    2c. An object that produces ⊥ — negative income, violating Inv3.
+Example 2a: Credit-scoring domain — clean object (income + credit_score)
+Example 2b: Credit-scoring domain — proxy (zip_code) + drift (latent_cluster)
+Example 2c: Credit-scoring domain — object that produces ⊥ (negative income)
 
-Output is printed to stdout in a format readable by a non-specialist
-auditor: each stage is labelled, each pruning decision is explained,
-and the final trace audit report is printed in full.
+Output is printed in a format readable by a non-specialist auditor:
+each stage is labelled, pruning decisions are explained, and the final
+trace audit report is printed in full.
 """
 
 from __future__ import annotations
@@ -26,7 +24,7 @@ import yaml
 
 from rel_compiler import RELCompiler, RELFailure
 from sol import TaskSOL, CreditSOL
-from pipeline import canon, collapse, is_safe
+from pipeline import collapse
 from trace import ConstitutionalTrace
 
 
@@ -49,6 +47,10 @@ def _step(label: str, value: object) -> None:
         print(f"  {value}")
 
 
+def _strip_provenance(d: dict) -> dict:
+    return {k: v for k, v in d.items() if not k.startswith("_")}
+
+
 def _print_trace(trace: ConstitutionalTrace) -> None:
     report = trace.audit_report()
     print(f"\n  Trace summary:")
@@ -66,8 +68,10 @@ def _print_trace(trace: ConstitutionalTrace) -> None:
         if entry["m"].get("reason"):
             print(f"        reason    : {entry['m']['reason']}")
         if entry["m"].get("field"):
-            print(f"        field     : {entry['m']['field']}"
-                  f" ({entry['m'].get('invariant', '')})")
+            print(
+                f"        field     : {entry['m']['field']}"
+                f" ({entry['m'].get('invariant', '')})"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -93,8 +97,7 @@ Priority: high
         print(f"\n  REL extraction failed: {e}")
         return
 
-    _step("REL output (lowered)", {k: v for k, v in lowered.items()
-                                    if not k.startswith("_")})
+    _step("REL output (lowered)", _strip_provenance(lowered))
     if warnings:
         _step("REL warnings", warnings)
 
@@ -131,8 +134,7 @@ credit_score: 0.31
         print(f"\n  REL extraction failed: {e}")
         return
 
-    _step("REL output (lowered)", {k: v for k, v in lowered.items()
-                                    if not k.startswith("_")})
+    _step("REL output (lowered)", _strip_provenance(lowered))
 
     sol = CreditSOL.from_dict(lowered)
     _step("SOL object (full)", sol.as_dict())
@@ -175,8 +177,7 @@ credit_score: 0.31
         print(f"\n  REL extraction failed: {e}")
         return
 
-    _step("REL output (lowered)", {k: v for k, v in lowered.items()
-                                    if not k.startswith("_")})
+    _step("REL output (lowered)", _strip_provenance(lowered))
 
     sol = CreditSOL.from_dict(lowered)
     _step("SOL object (full, pre-pipeline)", sol.as_dict())
@@ -187,7 +188,7 @@ credit_score: 0.31
         mark = "✓" if satisfied else "✗"
         print(f"    {mark} {inv_id}" + (f": {reason}" if reason else ""))
 
-    print("\n  Running canonical pipeline (Norm → ε → Sanitize)...")
+    print("\n  Running canonical pipeline (Norm → ε → Sanitize → Canon → Collapse)...")
     trace = ConstitutionalTrace(schema)
     result = collapse(sol.as_dict(), schema, trace)
 
@@ -226,8 +227,7 @@ credit_score: 0.31
         print(f"\n  REL extraction failed: {e}")
         return
 
-    _step("REL output (lowered)", {k: v for k, v in lowered.items()
-                                    if not k.startswith("_")})
+    _step("REL output (lowered)", _strip_provenance(lowered))
 
     sol = CreditSOL.from_dict(lowered)
     _step("SOL object", sol.as_dict())
