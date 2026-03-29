@@ -1,11 +1,10 @@
-
 G3 — Pipeline Safety
 1. Statement
 Guarantee G3 (Pipeline Safety).
-For every representation x\in R:
+For every representation x\in \mathbb{R_{\mathnormal{\bot }}}:
 \mathrm{Safe}(\mathrm{Canon}(x)),
 where:
-\mathrm{Safe}(y):=\mathrm{Inv}(y)\; \wedge \; \mathrm{NoDrift}(y)\; \wedge \; \mathrm{WF}(y).
+\mathrm{Safe}(y):=\mathrm{Inv}(y)\  \wedge \  \mathrm{NoDrift}(y)\  \wedge \  \mathrm{WF}(y).
 That is, the canonical form of any representation is always:
 - invariant‑satisfying
 - drift‑free
@@ -14,8 +13,9 @@ simultaneously.
 
 2. Dependencies
 2.1 Definitions
-- R: finite representational space (A1).
-- \mathrm{Canon}(x):=\mathrm{Sanitize}(\varepsilon (\mathrm{Norm}(x))).
+- \mathbb{R}: finite representational space (A1).
+- Canonical pipeline:
+\mathrm{Canon}(x):=\mathrm{Sanitize}\! \left( \varepsilon (\mathrm{Norm}(x))\right) .
 - \mathrm{Inv}(y): conjunction of decidable invariants (A5).
 - \mathrm{NoDrift}(y):=(\mathrm{Norm}(y)=y).
 - \mathrm{WF}(y): well‑formedness under schema \Sigma .
@@ -27,16 +27,15 @@ simultaneously.
 - Axiom 3 (Sanitize Fixed Point).
 \mathrm{Sanitize}(\mathrm{Canon}(x))=\mathrm{Canon}(x).
 - Axiom 4 (Sanitize Restores Invariants).
-\mathrm{Inv}(\mathrm{Sanitize}(y)) for all y\in R.
+\mathrm{Inv}(\mathrm{Sanitize}(y)) for all y\in \mathbb{R_{\mathnormal{\bot }}}.
 - Axiom 5 (Sanitize Enforces Well‑Formedness).
-\mathrm{WF}(\mathrm{Sanitize}(y)) for all y\in R.
+\mathrm{WF}(\mathrm{Sanitize}(y)) for all y\in \mathbb{R_{\mathnormal{\bot }}}.
 2.3 Prior Guarantees
 - G2 (Drift Elimination).
 \mathrm{NoDrift}(\mathrm{Canon}(x)).
 
 3. Lemmas
 Lemma 1 — Canon(x) satisfies Inv.
-Proof.
 \mathrm{Canon}(x)=\mathrm{Sanitize}(\varepsilon (\mathrm{Norm}(x))).
 By Axiom 4:
 \mathrm{Inv}(\mathrm{Sanitize}(y))\quad \forall y.
@@ -45,25 +44,24 @@ Thus:
 □
 
 Lemma 2 — Canon(x) satisfies NoDrift.
-This is exactly G2, already proven:
+This is exactly G2:
 \mathrm{Norm}(\mathrm{Canon}(x))=\mathrm{Canon}(x).
 Thus:
 \mathrm{NoDrift}(\mathrm{Canon}(x)).
 □
 
 Lemma 3 — Canon(x) satisfies WF.
-Proof.
 By Axiom 5:
 \mathrm{WF}(\mathrm{Sanitize}(y))\quad \forall y.
-Since Canon(x) ends with Sanitize:
+Since Canon ends with Sanitize:
 \mathrm{WF}(\mathrm{Canon}(x)).
 □
 
 4. Full Proof of G3
 We must show:
-\forall x\in R:\; \mathrm{Safe}(\mathrm{Canon}(x)).
+\forall x\in \mathbb{R_{\mathnormal{\bot }}}:\  \mathrm{Safe}(\mathrm{Canon}(x)).
 Expanding Safe:
-\mathrm{Inv}(\mathrm{Canon}(x))\; \wedge \; \mathrm{NoDrift}(\mathrm{Canon}(x))\; \wedge \; \mathrm{WF}(\mathrm{Canon}(x)).
+
 We prove each conjunct.
 
 Step 1 — Invariant Satisfaction
@@ -79,7 +77,7 @@ This follows from Axiom 1 (Norm fixed point).
 Step 3 — Well‑Formedness
 By Lemma 3:
 \mathrm{WF}(\mathrm{Canon}(x)).
-This follows from Axiom 5 (Sanitize enforces WF).
+This follows from Axiom 5 (Sanitize enforces well‑formedness).
 
 Step 4 — Conjunction
 Since all three properties hold independently:
@@ -96,8 +94,7 @@ The canonical pipeline is therefore a structural safety mechanism, not a statist
 
 6. Cross‑References
 - Paper Section: 4. The Formal Substrate and Its Guarantees
-- Appendix A: G3: Pipeline Safety
-- Axioms: Section 4.3 — The Formal Substrate: Five Axioms
-- Repo: /assumptions/axioms.md, /assumptions/structural_assumptions.md
+- Appendix A: G3 — Pipeline Safety
+- Repo: ../assumptions/axioms.md, ../assumptions/structural_assumptions.md
 
 

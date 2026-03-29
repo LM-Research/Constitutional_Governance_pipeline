@@ -1,11 +1,10 @@
-
 G10 — Constitutional Closure
 1. Statement
 Guarantee G10 (Constitutional Closure).
 Let the constitutional space be:
-C:=\{ x\in R:\mathrm{Inv}(x)\wedge \mathrm{WF}(x)\} .
+C:=\{ \, x\in \mathbb{R_{\mathnormal{\bot }}}:\mathrm{Inv}(x)\wedge \mathrm{WF}(x)\, \} .
 Then for every constitutional operator f\in O_{\mathrm{const}}:
-x\in C\; \Longrightarrow \; f(x)\in C.
+x\in C\quad \Longrightarrow \quad f(x)\in C.
 Equivalently:
 - The constitutional space is closed under all constitutional operators.
 - Lawful cognition cannot exit the constitutional space.
@@ -13,25 +12,26 @@ Equivalently:
 
 2. Dependencies
 2.1 Definitions
-- C:=\{ x:\mathrm{Inv}(x)\wedge \mathrm{WF}(x)\} .
-- O_{\mathrm{const}}=\{ \mathrm{Norm},\varepsilon ,\mathrm{Sanitize},\mathrm{Canon},\mathrm{Collapse}\} 
-and all compositions thereof.
+- Constitutional space:
+C:=\{ x:\mathrm{Inv}(x)\wedge \mathrm{WF}(x)\} .
+- Constitutional operators:
+O_{\mathrm{const}}=\{ \mathrm{Norm},\  \varepsilon ,\  \mathrm{Sanitize},\  \mathrm{Canon},\  \mathrm{Collapse}\} \quad \mathrm{(closed\  under\  composition)}.
 2.2 Axioms
-- Axiom 1: Norm(Canon(x)) = Canon(x).
-- Axiom 2: ε(Canon(x)) = Canon(x).
-- Axiom 3: Sanitize(Canon(x)) = Canon(x).
-- Axiom 4: Inv(Sanitize(x)).
-- Axiom 5: WF(Sanitize(x)).
+- Axiom 1: \mathrm{Norm}(\mathrm{Canon}(x))=\mathrm{Canon}(x).
+- Axiom 2: \varepsilon (\mathrm{Canon}(x))=\mathrm{Canon}(x).
+- Axiom 3: \mathrm{Sanitize}(\mathrm{Canon}(x))=\mathrm{Canon}(x).
+- Axiom 4: \mathrm{Inv}(\mathrm{Sanitize}(x)).
+- Axiom 5: \mathrm{WF}(\mathrm{Sanitize}(x)).
 2.3 Prior Guarantees
-- G1: All constitutional operators preserve Inv.
-- G3: Safe(Canon(x)) for all x.
+- G1: All constitutional operators preserve \mathrm{Inv}.
+- G3: \mathrm{Safe}(\mathrm{Canon}(x)) for all x.
 - G5: Canon is idempotent.
 - G6: Collapse is irreversible.
 
 3. Lemmas
 Lemma 1 — Constitutional operators preserve Inv.
 This is exactly G1:
-\forall f\in O_{\mathrm{const}}:\; \mathrm{Inv}(x)\Rightarrow \mathrm{Inv}(f(x)).
+\forall f\in O_{\mathrm{const}}:\  \mathrm{Inv}(x)\Rightarrow \mathrm{Inv}(f(x)).
 □
 
 Lemma 2 — Sanitize enforces WF.
@@ -49,11 +49,13 @@ Thus:
 
 Lemma 4 — Collapse maps constitutional states to constitutional states.
 If x\in C, then:
-- Inv(x) holds.
-- WF(x) holds.
-- NoDrift(x) may or may not hold.
-If Safe(x) holds, Collapse(x) = Canon(x) ∈ C (Lemma 3).
-If Safe(x) does not hold, Collapse(x) = x ∈ C.
+- \mathrm{Inv}(x) holds.
+- \mathrm{WF}(x) holds.
+- \mathrm{NoDrift}(x) may or may not hold.
+If \mathrm{Safe}(x), then:
+\mathrm{Collapse}(x)=\mathrm{Canon}(x)\in C\quad \mathrm{(Lemma\  3)}.
+If \neg \mathrm{Safe}(x), then:
+\mathrm{Collapse}(x)=x\in C.
 Thus:
 x\in C\Rightarrow \mathrm{Collapse}(x)\in C.
 □
@@ -68,9 +70,9 @@ We prove closure under each primitive operator, then under composition.
 
 Step 1 — Closure under primitive operators
 Case 1: f=\mathrm{Norm}
-From G1, Norm preserves Inv.
+From G1, Norm preserves \mathrm{Inv}.
 WF may be temporarily violated, but Canon(Norm(x)) restores WF (Lemma 2).
-Since Norm is only used inside Canon or ε→Sanitize→Canon sequences, the final committed state remains in C.
+Since Norm appears only inside Canon or in sequences ending in Sanitize, the final committed state remains in C.
 Case 2: f=\varepsilon 
 Same reasoning as Norm, using Axiom 2.
 Case 3: f=\mathrm{Sanitize}
@@ -91,7 +93,7 @@ x\in C\Rightarrow f(x)\in C,\qquad x\in C\Rightarrow g(x)\in C.
 Define h=f\circ g.
 Assume x\in C.
 Then:
-g(x)\in C\quad \Rightarrow \quad f(g(x))\in C.
+g(x)\in C\Rightarrow f(g(x))\in C.
 Thus:
 h(x)\in C.
 Since O_{\mathrm{const}} is closed under composition, closure holds for all constitutional operators.
@@ -110,8 +112,7 @@ This is the algebraic guarantee that the system cannot reason itself into an ung
 
 6. Cross‑References
 - Paper Section: 4. The Formal Substrate and Its Guarantees
-- Appendix A: G10: Constitutional Closure
-- Axioms: Section 4.3 — The Formal Substrate: Five Axioms
-- Repo: /assumptions/axioms.md, /assumptions/structural_assumptions.md
+- Appendix A: G10 — Constitutional Closure
+- Repo: ../assumptions/axioms.md, ../assumptions/structural_assumptions.md
 
 

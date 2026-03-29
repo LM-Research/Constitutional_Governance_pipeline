@@ -1,11 +1,9 @@
-
 Constitutional Governance — Proof Corpus
-
-This directory contains the complete formal proof corpus for the ten constitutional guarantees introduced in the paper Constitutional Governance by Design: A Formal Architecture for Safe, Auditable AI. Each proof is written in a classical formal‑methods style, using explicit lemmas, fixed‑point reasoning, operator algebra, and direct references to the five architectural axioms governing the canonical pipeline.
-
-The proofs here are authoritative: they are the normative specification of the guarantees.
-
-The paper contains only minimal statements and intuition; all formal derivations live in this directory.
+This directory contains the complete formal proof corpus for the ten constitutional guarantees introduced in the paper Constitutional Governance by Design: A Formal Architecture for Safe, Auditable AI.
+Each proof is written in a classical formal‑methods style, using explicit lemmas, fixed‑point reasoning, operator algebra, and direct references to the five architectural axioms governing the canonical pipeline.
+The proofs in this directory are authoritative:
+they constitute the normative specification of the guarantees.
+The paper contains only statements and intuition; all formal derivations live here.
 
 Structure
 Each guarantee is presented as a standalone Markdown file:
@@ -23,15 +21,14 @@ G10_constitutional_closure.md
 
 Each file contains:
 - Formal statement of the guarantee
-- Dependencies (axioms, definitions, assumptions)
+- Dependencies (axioms, definitions, assumptions, prior guarantees)
 - Lemmas used in the derivation
 - Full formal proof in classical FM style
 - Interpretation explaining the operational meaning
 - Cross‑references to the paper and assumptions directory
-The proofs are self‑contained and do not depend on the manuscript.
+All proofs are self‑contained and do not depend on the manuscript.
 
 Assumptions and Axioms
-
 The proofs rely on the architectural axioms and structural assumptions defined in:
 /assumptions/axioms.md
 /assumptions/structural_assumptions.md
@@ -45,38 +42,29 @@ These files specify:
 All proofs explicitly reference these assumptions.
 
 Philosophy
-
 The proof corpus is designed to be:
 Modular
 Each guarantee is proven independently, with shared lemmas factored cleanly.
-
 Mechanizable
-The structure mirrors the conventions of TLA+, Coq, and Isabelle, enabling future mechanization.
-
+The structure mirrors the conventions of TLA+, Coq, Isabelle, and Lean, enabling future mechanization.
 Auditable
 Regulators and engineers can trace each guarantee back to explicit axioms and operator definitions.
-
 Domain‑agnostic
 The proofs apply to any domain whose representational space satisfies the structural assumptions.
 
 How to Read This Corpus
-
 If you are:
-
 A reviewer
-Start with G3 (Pipeline Safety), which is the central theorem.
+Start with G3 (Pipeline Safety) — the central theorem.
 G1, G2, and G5 provide the algebraic foundation; G6–G10 extend the guarantees to commitment and distributed settings.
-
 An engineer
 Focus on the operator definitions and the axioms.
 These are the implementation‑critical components.
-
 A regulator or auditor
-Read the interpretation sections at the end of each proof.
+Read the Interpretation sections at the end of each proof.
 They explain the operational meaning of each guarantee.
 
 Relationship to the Paper
-
 The paper includes:
 - statements of the guarantees
 - intuition for each
@@ -85,9 +73,7 @@ All formal derivations have been removed from the manuscript to meet IEEE Comput
 This directory is the canonical source of truth for the formal substrate.
 
 License and Contributions
-
 This proof corpus is part of the Constitutional Governance Pipeline reference implementation.
-
 Contributions should preserve:
 - the axiomatic structure
 - the formal‑methods style

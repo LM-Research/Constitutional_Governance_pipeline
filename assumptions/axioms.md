@@ -1,6 +1,8 @@
 
 Axioms of the Canonical Pipeline
-These five axioms define the constitutional behavior of the canonical pipeline (Norm → ε → Sanitize). They are the foundational laws from which all ten constitutional guarantees are derived. Each axiom is operational, total, and implementation‑independent.
+These five axioms define the constitutional behavior of the canonical pipeline (Norm → ε → Sanitize). They are the foundational laws from which all ten constitutional guarantees are derived. Each axiom is operational, total, and implementation‑independent. Totality ensures that the canonical pipeline never fails silently; every input has a defined canonical outcome.
+
+These axioms constrain the behavior of any compliant implementation of the canonical pipeline. They are not empirical claims but definitional requirements.
 
 Axiom 1 — Norm Fixed Point
 For all representations x\in R:
@@ -21,13 +23,13 @@ Meaning.
 Sanitize is idempotent on canonical forms and cannot prune or alter them.
 
 Axiom 4 — Sanitize Restores Invariants
-For all representations x\in R:
+For all representations x \in \mathbb{R} \cup \{\bot\}:
 \mathrm{Inv}(\mathrm{Sanitize}(x)).
 Meaning.
-Sanitize always returns an invariant‑satisfying representation, regardless of input.
+Sanitize always returns an invariant‑satisfying representation, regardless of input ($\bot$ vacuously satisfies $\mathit{Inv}$ and $\mathit{WF}$ by convention).
 
 Axiom 5 — Sanitize Enforces Well‑Formedness
-For all representations x\in R:
+For all representations x \in \mathbb{R} \cup \{\bot\}:
 \mathrm{WF}(\mathrm{Sanitize}(x)).
 Meaning.
 Sanitize ensures schema compliance; malformed structures cannot survive the final stage of the pipeline.

@@ -1,86 +1,43 @@
 
 Structural Assumptions of the Representational Space
-These assumptions define the mathematical substrate required for the canonical pipeline and its guarantees. They are intentionally minimal and domain‑agnostic.
+These assumptions define the mathematical substrate required for the canonical pipeline and its constitutional guarantees. They are intentionally minimal, domain‑agnostic, and sufficient to ensure that the operators Norm, \varepsilon , Sanitize, Canon, and Collapse behave predictably and converge.
 
 Assumption A1 — Finite Representational Space
-The representational space R is finite or finitely branching.
+The representational space \mathbb{R} is finite or finitely branching.
 Meaning.
-All operators terminate; fixed‑point iteration is well‑defined.
+All operators terminate; fixed‑point iteration is well‑defined and cannot diverge.
 
 Assumption A2 — Convergent Normalization
-Repeated application of Norm converges to a fixed point:
-
+Repeated application of the normalization operator converges to a fixed point:
+\exists n\in \mathbb{N}:\mathrm{Norm^{\mathnormal{n}}}(x)=\mathrm{Norm^{\mathnormal{n+1}}}(x).
 Meaning.
-Normalization eliminates drift and stabilizes in finite time.
+Normalization eliminates representational drift and stabilizes in finite time.
 
 Assumption A3 — Totality of Operators
-Norm, ε, Sanitize, Canon, and Collapse are total functions:
-f:R\rightarrow R.
+All constitutional operators are total functions:
+\mathrm{Norm},\  \varepsilon ,\  \mathrm{Sanitize},\  \mathrm{Canon},\  \mathrm{Collapse}:\mathbb{R_{\mathnormal{\bot }}}\rightarrow \mathbb{R_{\mathnormal{\bot }}},
+where \mathbb{R_{\mathnormal{\bot }}}:=\mathbb{R}\cup \{ \bot \} .
 Meaning.
-Every operator produces a valid representation for every input.
+Every operator produces a valid representation for every input; the pipeline never fails silently.
 
 Assumption A4 — Decidability of Safety Predicates
-The predicates Inv, WF, and NoDrift are decidable.
+The predicates
+\mathrm{Inv}(x),\quad \mathrm{WF}(x),\quad \mathrm{NoDrift}(x)
+are decidable.
 Meaning.
-Safety checks are computable and can be applied at every step.
+Safety checks are computable and can be applied at every stage of the pipeline.
 
 Assumption A5 — Invariant Decomposition
 The invariant predicate decomposes into finitely many decidable components:
-\mathrm{Inv}(x):=\bigwedge _i\mathrm{Inv_{\mathnormal{i}}}(x).
+\mathrm{Inv}(x):=\bigwedge _{i=1}^k\mathrm{Inv_{\mathnormal{i}}}(x).
 Meaning.
-Invariant checking is modular and compositional.
+Invariant checking is modular, compositional, and amenable to mechanization.
 
 Distributed Setting Assumptions
-For multi‑agent guarantees (G8–G10):
-- Communication is synchronous (bounded delay).
-- Channels are reliable (no partitions).
-- Agents are honest‑but‑curious (no Byzantine faults).
-- All agents share the same schema \Sigma  and canonical pipeline specification.
-
-📄 README.md (for /assumptions)
-Assumptions and Axioms
-This directory contains the axiomatic foundation and structural assumptions that underlie the canonical pipeline and the ten constitutional guarantees. These files define the mathematical substrate of the architecture and serve as the normative reference for all proofs in /proofs.
-
-Files
-axioms.md
-structural_assumptions.md
-
-
-axioms.md
-Defines the five axioms governing the canonical pipeline:
-- Norm fixed point
-- Refinement fixed point
-- Sanitize fixed point
-- Sanitize restores invariants
-- Sanitize enforces well‑formedness
-These axioms are the core laws of the constitutional substrate.
-structural_assumptions.md
-Specifies the structural properties of the representational space:
-- finiteness / finite branching
-- convergent normalization
-- totality of operators
-- decidability of safety predicates
-- invariant decomposition
-- distributed communication assumptions
-These assumptions ensure that the canonical pipeline is well‑defined, terminating, and compositional.
-
-Relationship to the Proof Corpus
-All proofs in /proofs explicitly reference:
-- the axioms in axioms.md
-- the structural assumptions in structural_assumptions.md
-This directory is therefore the root of the formal dependency graph for the entire architecture.
-
-Philosophy
-The assumptions and axioms are:
-- minimal — no unnecessary constraints
-- domain‑agnostic — applicable to any representational substrate
-- mechanizable — suitable for future Coq/Isabelle/TLA+ formalization
-- auditable — clear enough for regulatory review
-They define the constitutional “physics” of the system.
-
-If you want, I can now generate:
-- a top‑level repo README
-- a dependency diagram showing how axioms → lemmas → guarantees connect
-- a How to mechanize these proofs guide
-- or a glossary for the repo
-Just tell me where you want to go next.
+For multi‑agent guarantees (G8–G10), the following conditions hold:
+- Synchronous communication: bounded message delay.
+- Reliable channels: no partitions or message loss.
+- Honest‑but‑curious agents: no Byzantine faults.
+- Shared schema: all agents operate over the same schema \Sigma  and the same canonical pipeline specification.
+Meaning.
+These assumptions ensure that distributed canonicalization and collapse converge to a single, globally agreed‑upon representation.
