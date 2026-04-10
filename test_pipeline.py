@@ -1,39 +1,36 @@
 """
 test_pipeline.py
 ----------------
-Minimal end‑to‑end test for the regex‑based REL front‑end and the SOL layer.
+Minimal end-to-end test for the governed chain:
 
-This verifies the governed chain:
+    SL spec → REL extraction → SOL object → canonical()
 
-    SL → REL_regex → SOL → canonical()
-
-For the task domain, the canonical basis is {task, priority}, so the
-canonical projection should preserve both fields exactly.
+Verifies that a well-formed input passes through all three stages and
+produces the expected canonical dict.
 """
 
 from rel_interpreter import load_spec, interpret
 from sol import TaskSOL
 
 
-def test_end_to_end_pipeline():
+def test_end_to_end_pipeline() -> None:
     raw_text = """
     Task: Write the introduction
     Priority: high
     """
 
-    # Load the regex‑based SL spec
     sl = load_spec()
-
-    # REL_regex extraction
     rel = interpret(sl, raw_text)
 
-    # Construct SOL object
+    # Required fields must be present; assert before constructing SOL.
+    assert rel["task"] is not None, "REL must extract required field: task"
+    assert rel["priority"] is not None, "REL must extract required field: priority"
+
     sol = TaskSOL(
         task=rel["task"],
         priority=rel["priority"],
     )
 
-    # Canonical projection must match the expected dict
     assert sol.canonical() == {
         "task": "Write the introduction",
         "priority": "high",
